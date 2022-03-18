@@ -1,4 +1,5 @@
 #include "Wifi_Man.h"
+#include <PID_v1.h>
 #include <Ubidots.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -7,8 +8,22 @@
 //Nombre dispositivo UBIDOTS
 #define DEVICE_LABEL "ESP8266-Control"
 
+#define VCPP D5
+#define VF1 D6
+#define VF2 D7
+#define SSR D8
+
 //Pin de conexion del Relay de 30A
-#define R_30A D6
+#define R_30A D3
+
+//Valores para control de temperatura y funcionamiento de ventiladores
+double Setpoint, Input, Output;
+float Kp = 2;
+float Kd = 5;
+float Ki = 1;
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+int WindowSize = 2000;
+int S_SSR = 0;
 
 //Setup Bus DS18B20
 #define oneWireBus D2
@@ -25,9 +40,10 @@ float promTemp = 0;
 #define lab_hume "hume"
 #define lab_Relay "relay"
 #define lab_DS18B20 "Temp_Cabina"
+#define lab_CalFil "Filamentos"
 
 //Definicion de tipo de variables a usar e indicacion del pin DHT22
-DHT SHT(D5, DHT22);
+DHT SHT(D1, DHT22);
 int H = 0; //Humidity DHT22
 float T = 0; //Temperature DHT22
 int S_R = 0;
@@ -79,6 +95,11 @@ void setup() {
 
   //Prueba para temporizador de envio de Datos
   tiempAnt = millis();
+
+  //inicializacion PID
+  Setpoint = 80; //Temperatura de llegada
+  myPID.SetOutputLimits(0, WindowSize); //definiendo ventana de tiempo
+  myPID.SetMode(AUTOMATIC); // encendiendo PID
 }
 
 void loop() {
@@ -86,6 +107,14 @@ void loop() {
 
   if (S_R != ERROR_VALUE) {
     digitalWrite(R_30A, S_R);
+  } else {
+    Serial.println("Error activacion");
+  }
+
+  S_SSR = ubidots.get(DEVICE_LABEL, lab_CalFil);
+
+  if (S_SSR != ERROR_VALUE) {
+    controlPID();
   } else {
     Serial.println("Error activacion");
   }
@@ -108,7 +137,7 @@ void loop() {
       }
     }
     promTemp = promTemp / 2;
-    
+
     H = SHT.readHumidity();
     T = SHT.readTemperature();
     Serial.println("Temp = " + String(T) + " ,Hume = " + String(H));
@@ -133,4 +162,15 @@ void printAddress(DeviceAddress deviceAddress) {
     if (deviceAddress[i] < 16) Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
   }
+}
+
+void controlPID () {
+  Input = T;
+  myPID.Compute();
+  if (millis() - tiempAnt > WindowSize)
+  { //time to shift the Relay Window
+    tiempAnt += WindowSize;
+  }
+  if (Output < millis() - tiempAnt) digitalWrite(SSR, HIGH);
+  else digitalWrite(SSR, LOW);
 }

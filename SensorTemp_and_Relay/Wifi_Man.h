@@ -28,7 +28,7 @@ void connectWifi_Man(){
   //wifiManager.resetSettings();
   
   //Creacion de AP
-  if(!wifiManager.autoConnect("ESP8266_Maker", "00000000")){
+  if(!wifiManager.autoConnect("ESP8266_Maker", "12345678")){
     Serial.println("Fallo en la conexion (timeout)");
     ESP.reset();
     delay(1000);
