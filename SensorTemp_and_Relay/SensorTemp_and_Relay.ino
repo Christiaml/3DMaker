@@ -23,6 +23,8 @@ float Kd = 5;
 float Ki = 1;
 PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 int WindowSize = 2000;
+int WindowSizeVPP = 6000;
+unsigned long windowStartTime;
 int S_SSR = 0;
 
 //Setup Bus DS18B20
@@ -95,6 +97,7 @@ void setup() {
 
   //Prueba para temporizador de envio de Datos
   tiempAnt = millis();
+  windowStartTime = millis();
 
   //inicializacion PID
   Setpoint = 80; //Temperatura de llegada
@@ -118,6 +121,7 @@ void loop() {
   } else {
     Serial.println("Error activacion");
   }
+
 
   Sensors.requestTemperatures();
 
@@ -167,10 +171,10 @@ void printAddress(DeviceAddress deviceAddress) {
 void controlPID () {
   Input = T;
   myPID.Compute();
-  if (millis() - tiempAnt > WindowSize)
+  if (millis() - windowStartTime > WindowSize)
   { //time to shift the Relay Window
-    tiempAnt += WindowSize;
+    windowStartTime += WindowSize;
   }
-  if (Output < millis() - tiempAnt) digitalWrite(SSR, HIGH);
-  else digitalWrite(SSR, LOW);
+  if (Output < millis() - windowStartTime) digitalWrite(SSR, HIGH);
+  else digitalWrite(SSR, LOW);  
 }
