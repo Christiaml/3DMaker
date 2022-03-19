@@ -14,7 +14,7 @@
 #define SSR D8
 
 //Pin de conexion del Relay de 30A
-#define R_30A D3
+#define R_30A D2
 
 //Valores para control de temperatura y funcionamiento de ventiladores
 double Setpoint, Input, Output;
@@ -28,7 +28,7 @@ unsigned long windowStartTime;
 int S_SSR = 0;
 
 //Setup Bus DS18B20
-#define oneWireBus D2
+#define oneWireBus D1
 OneWire ow(oneWireBus);
 
 //Dallas Temperature setup
@@ -45,7 +45,7 @@ float promTemp = 0;
 #define lab_CalFil "Filamentos"
 
 //Definicion de tipo de variables a usar e indicacion del pin DHT22
-DHT SHT(D1, DHT22);
+DHT SHT(D0, DHT22);
 int H = 0; //Humidity DHT22
 float T = 0; //Temperature DHT22
 int S_R = 0;
